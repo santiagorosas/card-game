@@ -178,6 +178,25 @@ class GameState {
             new Card('Bash', 2, 'Deal 8 damage and gain 3 block', () => {
                 this.dealDamageToEnemy(8);
                 this.playerBlock += 3;
+            }),
+            // New card: Rage
+            new Card('Rage', 1, 'Deal damage equal to the damage you took this turn', () => {
+                const damageTaken = this.maxPlayerHealth - this.playerHealth;
+                if (damageTaken > 0) {
+                    this.dealDamageToEnemy(damageTaken);
+                }
+            }),
+            // New card: Riposte
+            new Card('Riposte', 2, 'Gain 8 block. Deal damage equal to the block you have', () => {
+                this.playerBlock += 8;
+                this.dealDamageToEnemy(this.playerBlock);
+            }),
+            // New card: Blood Pact
+            new Card('Blood Pact', 0, 'Lose 3 health. Gain 2 energy', () => {
+                this.playerHealth = Math.max(1, this.playerHealth - 3);
+                this.currentEnergy = Math.min(this.maxEnergy, this.currentEnergy + 2);
+                this.showPlayerDamage(3);
+                updateUI();
             })
         ];
 
