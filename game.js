@@ -19,6 +19,41 @@ class Card {
     }
 }
 
+class SoundManager {
+    constructor() {
+        this.sounds = {
+            cardPlay: new Audio('sounds/card_play.mp3'),
+            cardDraw: new Audio('sounds/card_draw.mp3'),
+            enemyHit: new Audio('sounds/enemy_hit.mp3'),
+            playerHit: new Audio('sounds/player_hit.mp3'),
+            block: new Audio('sounds/block.mp3'),
+            shield: new Audio('sounds/shield.mp3'),
+            turnEnd: new Audio('sounds/turn_end.mp3'),
+            victory: new Audio('sounds/victory.mp3'),
+            defeat: new Audio('sounds/defeat.mp3')
+        };
+
+        // Set volume levels
+        this.sounds.cardPlay.volume = 0.5;
+        this.sounds.cardDraw.volume = 0.4;
+        this.sounds.enemyHit.volume = 0.6;
+        this.sounds.playerHit.volume = 0.6;
+        this.sounds.block.volume = 0.5;
+        this.sounds.shield.volume = 0.4;
+        this.sounds.turnEnd.volume = 0.3;
+        this.sounds.victory.volume = 0.7;
+        this.sounds.defeat.volume = 0.7;
+    }
+
+    play(soundName) {
+        if (this.sounds[soundName]) {
+            // Reset the sound to start if it's already playing
+            this.sounds[soundName].currentTime = 0;
+            this.sounds[soundName].play().catch(e => console.log('Audio play failed:', e));
+        }
+    }
+}
+
 class GameState {
     constructor() {
         this.playerHealth = 80;
@@ -32,6 +67,7 @@ class GameState {
         this.deck = [];
         this.discardPile = [];
         this.isPlayerTurn = true;
+        this.soundManager = new SoundManager();
         this.initializeDeck();
         this.drawHand();
         this.createEndTurnButton();
@@ -50,6 +86,7 @@ class GameState {
 
     async endTurn() {
         this.isPlayerTurn = false;
+        this.soundManager.play('turnEnd');
         
         // Hide UI elements
         document.getElementById('endTurnButton').style.display = 'none';
@@ -87,6 +124,7 @@ class GameState {
         const actualDamage = oldHealth - this.enemyHealth;
         
         if (actualDamage > 0) {
+            this.soundManager.play('enemyHit');
             const enemy = document.querySelector('.enemy');
             
             // Create slash container if it doesn't exist
@@ -230,6 +268,8 @@ class GameState {
             const card = this.drawCard();
             if (card) {
                 this.hand.push(card);
+                // Play draw sound for each card
+                this.soundManager.play('cardDraw');
             }
         }
         
@@ -241,12 +281,18 @@ class GameState {
             card.effect();
             this.currentEnergy -= card.cost;
             
+            // Play card sound
+            this.soundManager.play('cardPlay');
+            
             // Show shield effect for Block cards
             if (card.name === 'Defend') {
                 const playerArea = document.querySelector('.player-area');
                 const shield = document.createElement('div');
                 shield.className = 'shield-effect';
                 playerArea.appendChild(shield);
+                
+                // Play shield sound
+                this.soundManager.play('shield');
                 
                 // Remove shield after animation
                 setTimeout(() => shield.remove(), 1500);
@@ -307,7 +353,7 @@ class GameState {
         // Add screen shake and deal damage at the lowest point
         gameContainer.classList.add('screen-shake');
         this.takeDamage(8);
-        updateUI(); // Update UI immediately after damage
+        updateUI();
         
         // Wait for the attack animation to complete
         await new Promise(resolve => setTimeout(resolve, 550));
@@ -337,6 +383,7 @@ class GameState {
             
             if (blockedAmount > 0) {
                 this.showBlockedDamage(blockedAmount);
+                this.soundManager.play('block');
             }
         }
         
@@ -348,6 +395,7 @@ class GameState {
             
             if (actualDamage > 0) {
                 this.showPlayerDamage(actualDamage);
+                this.soundManager.play('playerHit');
             }
         }
         
