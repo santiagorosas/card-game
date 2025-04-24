@@ -108,8 +108,17 @@ class GameState {
                 this.discardPile.push(card);
             }
             
+            this.renderHand();
             updateUI();
         }
+    }
+
+    renderHand() {
+        const handElement = document.getElementById('hand');
+        handElement.innerHTML = '';
+        this.hand.forEach(card => {
+            handElement.appendChild(card.createElement());
+        });
     }
 
     endTurn() {
