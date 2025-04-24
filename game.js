@@ -35,16 +35,53 @@ class GameState {
         this.drawHand();
     }
 
+    dealDamageToEnemy(amount) {
+        const oldHealth = this.enemyHealth;
+        this.enemyHealth = Math.max(0, this.enemyHealth - amount);
+        const actualDamage = oldHealth - this.enemyHealth;
+        
+        if (actualDamage > 0) {
+            // Create damage number
+            const enemy = document.querySelector('.enemy');
+            const damageNumber = document.createElement('div');
+            damageNumber.className = 'damage-number';
+            damageNumber.textContent = actualDamage;
+            
+            // Position the damage number randomly around the enemy
+            const randomX = Math.random() * 40 - 20; // Random position ±20px
+            damageNumber.style.left = `calc(50% + ${randomX}px)`;
+            damageNumber.style.top = '50%';
+            
+            // Add shake and flash effect to enemy
+            enemy.classList.add('damaged');
+            
+            // Remove the damaged class after animation
+            setTimeout(() => {
+                enemy.classList.remove('damaged');
+            }, 300);
+
+            // Add the damage number to the enemy area
+            enemy.appendChild(damageNumber);
+            
+            // Remove the damage number after animation
+            setTimeout(() => {
+                damageNumber.remove();
+            }, 1000);
+        }
+        
+        updateUI();
+    }
+
     initializeDeck() {
         const starterDeck = [
             new Card('Strike', 1, 'Deal 6 damage', () => {
-                this.enemyHealth = Math.max(0, this.enemyHealth - 6);
+                this.dealDamageToEnemy(6);
             }),
             new Card('Strike', 1, 'Deal 6 damage', () => {
-                this.enemyHealth = Math.max(0, this.enemyHealth - 6);
+                this.dealDamageToEnemy(6);
             }),
             new Card('Strike', 1, 'Deal 6 damage', () => {
-                this.enemyHealth = Math.max(0, this.enemyHealth - 6);
+                this.dealDamageToEnemy(6);
             }),
             new Card('Defend', 1, 'Gain 5 block', () => {
                 this.playerBlock += 5;
@@ -56,7 +93,7 @@ class GameState {
                 this.playerBlock += 5;
             }),
             new Card('Bash', 2, 'Deal 8 damage and gain 3 block', () => {
-                this.enemyHealth = Math.max(0, this.enemyHealth - 8);
+                this.dealDamageToEnemy(8);
                 this.playerBlock += 3;
             })
         ];
