@@ -85,32 +85,69 @@ class GameState {
         const actualDamage = oldHealth - this.enemyHealth;
         
         if (actualDamage > 0) {
-            // Create damage number
             const enemy = document.querySelector('.enemy');
+            
+            // Create slash container if it doesn't exist
+            let slashContainer = document.querySelector('.slash-container');
+            if (!slashContainer) {
+                slashContainer = document.createElement('div');
+                slashContainer.className = 'slash-container';
+                enemy.appendChild(slashContainer);
+            }
+            
+            // Create and animate slash effect
+            const slash = document.createElement('div');
+            slash.className = 'slash';
+            slashContainer.appendChild(slash);
+            
+            // Create blood particles
+            for (let i = 0; i < 8; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'blood-particle';
+                
+                // Random position within the enemy
+                const x = Math.random() * 100 - 50;
+                const y = Math.random() * 100 - 50;
+                particle.style.left = `calc(50% + ${x}px)`;
+                particle.style.top = `calc(50% + ${y}px)`;
+                
+                // Random direction for spray
+                const angle = Math.random() * Math.PI * 2;
+                const distance = 50 + Math.random() * 50;
+                const dx = Math.cos(angle) * distance;
+                const dy = Math.sin(angle) * distance;
+                
+                particle.style.setProperty('--dx', `${dx}px`);
+                particle.style.setProperty('--dy', `${dy}px`);
+                particle.style.animation = 'bloodSpray 0.5s ease-out forwards';
+                
+                enemy.appendChild(particle);
+                
+                // Remove particle after animation
+                setTimeout(() => particle.remove(), 500);
+            }
+            
+            // Add hit reaction
+            enemy.classList.add('hit');
+            
+            // Create damage number
             const damageNumber = document.createElement('div');
             damageNumber.className = 'damage-number';
             damageNumber.textContent = actualDamage;
             
             // Position the damage number randomly around the enemy
-            const randomX = Math.random() * 40 - 20; // Random position ±20px
+            const randomX = Math.random() * 40 - 20;
             damageNumber.style.left = `calc(50% + ${randomX}px)`;
             damageNumber.style.top = '50%';
             
-            // Add shake and flash effect to enemy
-            enemy.classList.add('damaged');
-            
-            // Remove the damaged class after animation
-            setTimeout(() => {
-                enemy.classList.remove('damaged');
-            }, 300);
-
-            // Add the damage number to the enemy area
             enemy.appendChild(damageNumber);
             
-            // Remove the damage number after animation
+            // Remove elements after animations
             setTimeout(() => {
+                slash.remove();
                 damageNumber.remove();
-            }, 1000);
+                enemy.classList.remove('hit');
+            }, 500);
         }
         
         updateUI();
@@ -214,31 +251,36 @@ class GameState {
 
     async enemyTurn() {
         const enemy = document.querySelector('.enemy');
+        const gameContainer = document.querySelector('.game-container');
         
         // Stop the floating animation
         enemy.style.animation = 'none';
         
-        // Wait a moment before attacking
-        await new Promise(resolve => setTimeout(resolve, 500));
+        // Short pause before attack
+        await new Promise(resolve => setTimeout(resolve, 300));
         
         // Add attacking class to trigger animation
         enemy.classList.add('attacking');
         
-        // Wait for the attack animation
-        await new Promise(resolve => setTimeout(resolve, 500));
+        // Wait until the enemy reaches its lowest point (45% of animation)
+        await new Promise(resolve => setTimeout(resolve, 450));
         
-        // Deal damage
+        // Add screen shake and deal damage at the lowest point
+        gameContainer.classList.add('screen-shake');
         this.takeDamage(8);
         
-        // Wait for the damage animation and numbers to show
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        // Wait for the attack animation to complete
+        await new Promise(resolve => setTimeout(resolve, 550));
         
-        // Remove attacking class and restore floating animation
+        // Remove screen shake and attacking class
+        gameContainer.classList.remove('screen-shake');
         enemy.classList.remove('attacking');
+        
+        // Restore floating animation
         enemy.style.animation = 'float 3s ease-in-out infinite';
         
-        // Additional delay before ending turn
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        // Shorter delay before ending turn
+        await new Promise(resolve => setTimeout(resolve, 700));
     }
 
     takeDamage(amount) {
