@@ -31,8 +31,52 @@ class GameState {
         this.hand = [];
         this.deck = [];
         this.discardPile = [];
+        this.isPlayerTurn = true;
         this.initializeDeck();
         this.drawHand();
+        this.createEndTurnButton();
+    }
+
+    createEndTurnButton() {
+        const endTurnButton = document.createElement('button');
+        endTurnButton.textContent = 'End Turn';
+        endTurnButton.style.position = 'fixed';
+        endTurnButton.style.bottom = '20px';
+        endTurnButton.style.right = '20px';
+        endTurnButton.id = 'endTurnButton';
+        endTurnButton.addEventListener('click', () => this.endTurn());
+        document.body.appendChild(endTurnButton);
+    }
+
+    async endTurn() {
+        this.isPlayerTurn = false;
+        
+        // Hide UI elements
+        document.getElementById('endTurnButton').style.display = 'none';
+        const handElement = document.getElementById('hand');
+        handElement.classList.remove('visible');
+        handElement.classList.add('hidden');
+        
+        // Move remaining cards to discard pile
+        this.discardPile.push(...this.hand);
+        this.hand = [];
+        
+        this.currentEnergy = this.maxEnergy;
+        this.playerBlock = 0;
+        this.drawHand();
+        
+        // Make enemy turn async
+        await this.enemyTurn();
+        
+        // Return to player's turn
+        this.isPlayerTurn = true;
+        
+        // Show UI elements
+        document.getElementById('endTurnButton').style.display = 'block';
+        handElement.classList.remove('hidden');
+        handElement.classList.add('visible');
+        
+        updateUI();
     }
 
     dealDamageToEnemy(amount) {
@@ -153,38 +197,112 @@ class GameState {
     renderHand() {
         const handElement = document.getElementById('hand');
         handElement.innerHTML = '';
+        
+        // Add visible class if it's player's turn
+        if (this.isPlayerTurn) {
+            handElement.classList.remove('hidden');
+            handElement.classList.add('visible');
+        } else {
+            handElement.classList.remove('visible');
+            handElement.classList.add('hidden');
+        }
+        
         this.hand.forEach(card => {
             handElement.appendChild(card.createElement());
         });
     }
 
-    endTurn() {
-        this.discardPile.push(...this.hand);
-        this.hand = [];
+    async enemyTurn() {
+        const enemy = document.querySelector('.enemy');
         
-        this.currentEnergy = this.maxEnergy;
-        this.playerBlock = 0;
-        this.drawHand();
-        this.enemyTurn();
-        updateUI();
-    }
-
-    enemyTurn() {
+        // Stop the floating animation
+        enemy.style.animation = 'none';
+        
+        // Wait a moment before attacking
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // Add attacking class to trigger animation
+        enemy.classList.add('attacking');
+        
+        // Wait for the attack animation
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // Deal damage
         this.takeDamage(8);
+        
+        // Wait for the damage animation and numbers to show
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // Remove attacking class and restore floating animation
+        enemy.classList.remove('attacking');
+        enemy.style.animation = 'float 3s ease-in-out infinite';
+        
+        // Additional delay before ending turn
+        await new Promise(resolve => setTimeout(resolve, 2000));
     }
 
     takeDamage(amount) {
+        // First reduce block
         if (this.playerBlock > 0) {
             const remainingBlock = this.playerBlock - amount;
             if (remainingBlock >= 0) {
                 this.playerBlock = remainingBlock;
+                this.showBlockedDamage(amount);
                 return;
             } else {
                 amount = -remainingBlock;
                 this.playerBlock = 0;
             }
         }
+        
+        // Then reduce health and show damage
+        const oldHealth = this.playerHealth;
         this.playerHealth = Math.max(0, this.playerHealth - amount);
+        const actualDamage = oldHealth - this.playerHealth;
+        
+        if (actualDamage > 0) {
+            this.showPlayerDamage(actualDamage);
+        }
+    }
+
+    showPlayerDamage(amount) {
+        const playerArea = document.querySelector('.player-area');
+        const damageNumber = document.createElement('div');
+        damageNumber.className = 'player-damage-number';
+        damageNumber.textContent = amount;
+        
+        // Position the damage number in the player area
+        damageNumber.style.left = '50%';
+        damageNumber.style.top = '40%';
+        damageNumber.style.transform = 'translateX(-50%)';
+        
+        playerArea.appendChild(damageNumber);
+        
+        // Remove the damage number after animation
+        setTimeout(() => {
+            damageNumber.remove();
+        }, 1000);
+    }
+
+    showBlockedDamage(amount) {
+        const playerArea = document.querySelector('.player-area');
+        const blockNumber = document.createElement('div');
+        blockNumber.className = 'player-damage-number';
+        blockNumber.textContent = 'BLOCKED!';
+        blockNumber.style.color = '#4CAF50';
+        blockNumber.style.fontSize = '2rem';
+        
+        // Position the block text in the player area
+        blockNumber.style.left = '50%';
+        blockNumber.style.top = '40%';
+        blockNumber.style.transform = 'translateX(-50%)';
+        
+        playerArea.appendChild(blockNumber);
+        
+        // Remove the block text after animation
+        setTimeout(() => {
+            blockNumber.remove();
+        }, 1000);
     }
 }
 
@@ -206,14 +324,4 @@ function updateUI() {
     }
     document.querySelector('.player-block').textContent = 
         `Block: ${gameState.playerBlock}`;
-}
-
-const endTurnButton = document.createElement('button');
-endTurnButton.textContent = 'End Turn';
-endTurnButton.style.position = 'absolute';
-endTurnButton.style.bottom = '20px';
-endTurnButton.style.right = '20px';
-endTurnButton.addEventListener('click', () => gameState.endTurn());
-document.body.appendChild(endTurnButton);
-
-updateUI(); 
+} 
