@@ -220,6 +220,17 @@ class GameState {
             card.effect();
             this.currentEnergy -= card.cost;
             
+            // Show shield effect for Block cards
+            if (card.name === 'Defend') {
+                const playerArea = document.querySelector('.player-area');
+                const shield = document.createElement('div');
+                shield.className = 'shield-effect';
+                playerArea.appendChild(shield);
+                
+                // Remove shield after animation
+                setTimeout(() => shield.remove(), 1500);
+            }
+            
             const cardIndex = this.hand.indexOf(card);
             if (cardIndex !== -1) {
                 this.hand.splice(cardIndex, 1);
@@ -245,7 +256,14 @@ class GameState {
         }
         
         this.hand.forEach(card => {
-            handElement.appendChild(card.createElement());
+            const cardElement = card.createElement();
+            
+            // Disable card if player doesn't have enough energy
+            if (this.currentEnergy < card.cost) {
+                cardElement.classList.add('disabled');
+            }
+            
+            handElement.appendChild(cardElement);
         });
     }
 
