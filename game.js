@@ -62,11 +62,13 @@ class GameState {
         this.hand = [];
         
         this.currentEnergy = this.maxEnergy;
-        this.playerBlock = 0;
         this.drawHand();
         
         // Make enemy turn async
         await this.enemyTurn();
+        
+        // Reset block after enemy turn
+        this.playerBlock = 0;
         
         // Return to player's turn
         this.isPlayerTurn = true;
@@ -286,6 +288,7 @@ class GameState {
         // Add screen shake and deal damage at the lowest point
         gameContainer.classList.add('screen-shake');
         this.takeDamage(8);
+        updateUI(); // Update UI immediately after damage
         
         // Wait for the attack animation to complete
         await new Promise(resolve => setTimeout(resolve, 550));
@@ -299,30 +302,37 @@ class GameState {
         
         // Shorter delay before ending turn
         await new Promise(resolve => setTimeout(resolve, 700));
+        
+        // Final UI update before ending turn
+        updateUI();
     }
 
     takeDamage(amount) {
+        let damageToHealth = amount;
+        
         // First reduce block
         if (this.playerBlock > 0) {
-            const remainingBlock = this.playerBlock - amount;
-            if (remainingBlock >= 0) {
-                this.playerBlock = remainingBlock;
-                this.showBlockedDamage(amount);
-                return;
-            } else {
-                amount = -remainingBlock;
-                this.playerBlock = 0;
+            const blockedAmount = Math.min(this.playerBlock, amount);
+            this.playerBlock -= blockedAmount;
+            damageToHealth = amount - blockedAmount;
+            
+            if (blockedAmount > 0) {
+                this.showBlockedDamage(blockedAmount);
             }
         }
         
-        // Then reduce health and show damage
-        const oldHealth = this.playerHealth;
-        this.playerHealth = Math.max(0, this.playerHealth - amount);
-        const actualDamage = oldHealth - this.playerHealth;
-        
-        if (actualDamage > 0) {
-            this.showPlayerDamage(actualDamage);
+        // Then reduce health if there's remaining damage
+        if (damageToHealth > 0) {
+            const oldHealth = this.playerHealth;
+            this.playerHealth = Math.max(0, this.playerHealth - damageToHealth);
+            const actualDamage = oldHealth - this.playerHealth;
+            
+            if (actualDamage > 0) {
+                this.showPlayerDamage(actualDamage);
+            }
         }
+        
+        updateUI();
     }
 
     showPlayerDamage(amount) {
@@ -348,7 +358,7 @@ class GameState {
         const playerArea = document.querySelector('.player-area');
         const blockNumber = document.createElement('div');
         blockNumber.className = 'player-damage-number';
-        blockNumber.textContent = 'BLOCKED!';
+        blockNumber.textContent = `${amount} BLOCKED!`;
         blockNumber.style.color = '#4CAF50';
         blockNumber.style.fontSize = '2rem';
         
